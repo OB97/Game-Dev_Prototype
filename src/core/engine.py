@@ -14,6 +14,13 @@ class Engine:
         self.game_map = GameMap(cols=24, rows=24, tree_density=0.12)
         self.entities = [self.player]
 
+        # DEBUG: Print map info
+        print(f"Map initialized: Model={self.game_map.model is not None}")
+        if self.game_map.model:
+            print(f"  Meshes: {self.game_map.model.meshCount}")
+            print(f"  Mesh[0] vertices: {self.game_map.model.meshes[0].vertexCount}")
+            print(f"  Mesh[0] triangles: {self.game_map.model.meshes[0].triangleCount}")
+
         # Sandbox parameters
         self.camera_offset = 14.0
         self.panel_expanded = True
@@ -30,11 +37,20 @@ class Engine:
         self.light_tint = pr.WHITE
 
     def run(self):
+        frame_count = 0
         while not pr.window_should_close():
             if not self.is_running:
                 break
             self._update()
             self._render()
+
+            # DEBUG: Print mesh info once per 60 frames
+            frame_count += 1
+            if frame_count % 60 == 0:
+                print(f"Frame {frame_count}: Map model exists: {self.game_map.model is not None}")
+                if self.game_map.model:
+                    print(f"  Mesh[0] vertices: {self.game_map.model.meshes[0].vertexCount}")
+
         self.close()
 
     def _update(self):

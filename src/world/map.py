@@ -106,22 +106,22 @@ class GameMap:
         pr.draw_line_3d(
             pr.Vector3(-half_size, 0.01, -half_size),
             pr.Vector3(half_size, 0.01, -half_size),
-            pr.RED
+            pr.BLACK
         )
         pr.draw_line_3d(
             pr.Vector3(half_size, 0.01, -half_size),
             pr.Vector3(half_size, 0.01, half_size),
-            pr.RED
+            pr.BLACK
         )
         pr.draw_line_3d(
             pr.Vector3(half_size, 0.01, half_size),
             pr.Vector3(-half_size, 0.01, half_size),
-            pr.RED
+            pr.BLACK
         )
         pr.draw_line_3d(
             pr.Vector3(-half_size, 0.01, half_size),
             pr.Vector3(-half_size, 0.01, -half_size),
-            pr.RED
+            pr.BLACK
         )
 
         # Render the ground mesh
@@ -143,4 +143,4 @@ class GameMap:
                     # Draw a brown cube for the tree
                     tree_pos = pr.Vector3(x, self.tile_size / 2.0, z)
                     pr.draw_cube(tree_pos, self.tile_size, self.tile_size, self.tile_size, pr.Color(101, 67, 33, 255))
-                    pr.draw_cube_wires(tree_pos, self.tile_size, self.tile_size, self.tile_size, pr.DARKBROWN)
+                    pr.draw_cube_wires(tree_pos, self.tile_size, self.tile_size, self.tile_size, pr.BLACK)

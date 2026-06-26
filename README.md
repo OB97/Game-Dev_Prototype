@@ -23,17 +23,21 @@ wizard_prototype/
 │   │
 │   ├── systems/             # Pure game mechanics (Engine-agnostic logic)
 │   │   ├── __init__.py
-│   │   ├── combat.py        # Spell casting, damage resolution, hitboxes
-│   │   └── map_gen.py       # Procedural dungeon/grid layout generation
+│   │   └── combat.py        # Spell casting, damage resolution, hitboxes
+│   │          
 │   │
-│   └── entities/            # Game Objects (Data + localized state)
-│       ├── __init__.py
-│       ├── base_entity.py   # Parent class for anything with a 3D position
-│       ├── player.py        # Player stats, inputs, and spell state
-│       ├── enemy.py         # Enemy AI state machines
-│       └── projectile.py    # Spell/Fireball movement arrays
-│
-├── requirements.txt         # For managing `pyray` dependency
+│   ├── entities/            # Game Objects (Data + localized state)
+│   │    ├── __init__.py
+│   │    ├── base_entity.py   # Parent class for anything with a 3D position
+│   │    ├── player.py        # Player stats, inputs, and spell state
+│   │    ├── enemy.py         # Enemy AI state machines
+│   │    └── projectile.py    # Spell/Fireball movement arrays
+│   │
+│   └── world/
+│        ├── __init__.py
+│        └── map.py           # Procedural level layout generation
+│        
+├── requirements.txt          # For managing `pyray` dependency
 └── README.md
 ```
 
@@ -43,31 +47,46 @@ ___
 
 ```mermaid
 graph TD
-    %% Base Orchestration %%
-    Engine[Engine <br><i>Handles Raylib window & loops</i>] --> GameWorld[GameWorld <br><i>Holds map grid & Entity collections</i>]
-    
-    %% Systems %%
-    GameWorld --> MapGen[MapGenerator <br><i>Generates grids / walls</i>]
-    GameWorld --> CombatSys[CombatSystem <br><i>Spawns spells / checks bounds</i>]
-    GameWorld --> CamSys[CameraSystem <br><i>Sets fixed 45 Degree isometric offset</i>]
 
-    %% Entities %%
-    CombatSys --> BaseEntity[BaseEntity <br><i>position: Vector3 <br> bounding_box: BoundingBox</i>]
-    
-    %% Inheritances %%
-    BaseEntity --> Player[Player <br><i>health, mana <br> cast_spell</i>]
-    BaseEntity --> Enemy[Enemy <br><i>ai_state: Str <br> target: Player</i>]
-    BaseEntity --> Projectile[Projectile <br><i>velocity: Vector3 <br> damage: Int</i>]
+%% Base Orchestration %%
+Engine[Engine  
+Handles Raylib window & loops] 
+--> GameWorld[GameWorld  
+Holds map grid & Entity collections]
 
-    %% Styling %%
-    style Engine fill:#2c3e50,stroke:#34495e,stroke-width:2px,color:#fff
-    style GameWorld fill:#16a085,stroke:#1abc9c,stroke-width:2px,color:#fff
-    style BaseEntity fill:#2980b9,stroke:#3498db,stroke-width:2px,color:#fff
-    
-    
+%% Systems %%
+GameWorld --> Map[Map  
+Generates grids / walls / trees]
+GameWorld --> CombatSys[CombatSystem  
+Spawns spells / checks bounds]
+GameWorld --> CamSys[CameraSystem  
+Sets fixed 45 Degree isometric offset]
+
+%% Entities %%
+CombatSys --> BaseEntity[BaseEntity  
+position: Vector3  
+bounding_box: BoundingBox]
+
+%% Inheritances %%
+BaseEntity --> Player[Player  
+health, mana  
+cast_spell]
+BaseEntity --> Enemy[Enemy  
+ai_state: Str  
+target: Player]
+BaseEntity --> Projectile[Projectile  
+velocity: Vector3  
+damage: Int]
+
+%% Styling %%
+style Engine fill:#2c3e50,stroke:#34495e,stroke-width:2px,color:#fff
+style GameWorld fill:#16a085,stroke:#1abc9c,stroke-width:2px,color:#fff
+style BaseEntity fill:#2980b9,stroke:#3498db,stroke-width:2px,color:#fff
+
 ```
 ___
 
+## <u>Current Phase: End of Phase 3</u>
 
 # Phase 1: The Core Foundation (Getting a Window and a Grid)
 Your first goal is simply to initialize the engine, create a 3D canvas, and render a basic floor grid to prove the 3D camera works.
@@ -130,3 +149,239 @@ Action: Create a Projectile entity that travels forward along a directional vect
 Task: Add basic targets.
 
 Action: Create an Enemy class that inherits from BaseEntity. Give it a simple state machine (e.g., if distance to player < 15, move directly toward player position).
+
+___
+
+# Architectural Overview
+This project follows a layered architecture that separates execution, world state, logic systems, and rendering responsibilities. While not a full ECS implementation, it aligns closely with ECS principles.
+
+- Engine layer: controls execution flow
+- World layer: stores map and entity state
+- System layer: applies rules (combat, map generation)
+- Entity layer: holds object-specific data and behavior
+- Camera layer: defines how the world is viewed
+
+This separation improves maintainability, scalability, and clarity during development.
+
+___
+
+## Core Components
+### Engine (core/engine.py)
+Responsibility:
+
+- Runs the main game loop
+- Coordinates updates and rendering
+- Owns top-level objects such as camera, map, and player
+
+Key strategies:
+
+#### 1. Game loop pattern
+
+```
+while not window_should_close():
+    update(dt)
+    draw()
+```
+
+This separates simulation from rendering and supports frame-rate independent behavior.
+
+#### 2. Central orchestration
+
+The engine calls update and draw functions for all major components. This avoids circular dependencies and keeps control flow predictable.
+
+<u>Dependencies</u>:
+
+- Uses: camera, map, player, collision
+- Used by: main.py
+
+___
+
+### Camera (core/camera.py)
+Responsibility:
+
+- Maintains the view into the world
+- Tracks the player
+- Provides an isometric perspective
+
+Key strategies:
+
+#### 1. Fixed isometric offset
+
+The camera is positioned relative to its target at a constant angle.
+This simplifies rendering and ensures a consistent view of the world.
+
+#### 2. Linear interpolation (LERP)
+
+The camera smoothly follows the player:
+```
+current += (target - current) * factor
+```
+
+This avoids snapping and provides smooth motion.
+
+Important note:
+LERP introduces floating-point values, which can cause subpixel rendering artifacts in grid-aligned visuals. These are resolved by snapping rendered positions to integer values.
+
+<u>Dependencies</u>:
+
+- Uses: player position
+- Used by: engine
+
+___
+
+### Map (world/map.py)
+Responsibility:
+
+- Represents the world grid
+- Handles tile rendering
+- Defines spatial layout
+
+Key strategies:
+
+#### 1. Grid-based representation
+```
+map[y][x] = 0 or 1
+```
+
+This provides fast lookup and integrates cleanly with collision logic.
+
+#### 2. Deterministic rendering
+
+The map is rendered by iterating through the grid and drawing tiles.
+This ensures predictable and debuggable behavior.
+
+#### 3. Debug visualization
+
+Tile edges and map boundaries can be drawn for debugging spatial correctness.
+
+<u>Dependencies</u>:
+
+- Used by: engine, collision
+
+___
+
+### Collision (util/collision.py)
+Responsibility:
+
+- Prevents invalid movement
+- Resolves interactions with the environment
+
+Key strategies:
+
+#### 1. Grid-based collision
+
+Movement checks are based on map cell values rather than physics simulation.
+This approach is fast and sufficient for tile-based environments.
+
+#### 2. Axis-aligned resolution
+
+Movement is typically resolved along one axis at a time.
+This prevents diagonal corner clipping and simplifies calculations.
+
+<u>Dependencies</u>:
+
+- Uses: map
+- Used by: player
+
+___
+
+### BaseEntity (entities/base_entity.py)
+Responsibility:
+
+- Provides a common structure for all entities
+
+Typical fields:
+
+- position
+- bounding_box
+
+Key strategy:
+
+Inheritance is used to define shared behavior and data.
+This allows all entities to be treated uniformly while still supporting specialization.
+
+<u>Dependencies</u>:
+
+- Used by: player, enemy, projectile
+
+
+### Player (entities/player.py)
+Responsibility:
+
+- Handles input
+- Controls player movement
+- Represents player-specific state
+
+Key strategies:
+
+#### 1. Input polling
+
+The player checks for key presses each frame.
+This approach is simple and responsive.
+
+#### 2. Velocity-based movement
+```
+position += direction * speed * dt
+```
+
+This ensures smooth movement independent of frame rate.
+
+#### 3. Delegated collision
+
+The player queries the collision system before committing movement.
+This keeps movement logic separate from environmental rules.
+
+<u>Dependencies</u>:
+
+- Uses: collision, map
+- Used by: engine, camera
+
+___
+
+### System Interdependencies
+
+```
+Component    |       Depends On          |       Used By
+________________________________________________________________
+Engine       |    Camera, Player, Map    |       main.py
+Camera       |        Player             |       Engine
+Map          |         None              |   Engine, Collision
+Collision    |         Map               |       Player
+Player       |       Collision           |     Engine, Camera
+BaseEntity   |         None              |       Entities
+```
+
+___
+
+### Frame Execution Flow
+```mermaid
+flowchart TD
+
+Start[Frame Start]
+    --> Input[Poll Input]
+    --> PlayerUpdate[Update Player]
+    --> CollisionCheck[Resolve Collision]
+    --> CameraUpdate["Update Camera (LERP)"]
+    --> BeginDraw[Begin Drawing]
+    --> DrawMap[Render Map]
+    --> DrawEntities[Render Entities]
+    --> EndDraw[End Drawing]
+```
+___
+
+### Rendering Considerations
+The camera uses smooth interpolation, which produces fractional world coordinates. When these are rendered directly, they may result in subpixel artifacts such as dotted or broken lines in grid-aligned visuals.
+Recommended strategy:
+
+- Round or snap world positions to integer values during rendering
+
+Example:
+```
+screen_x = round(world_x - camera_x)
+```
+
+This ensures that rendered geometry aligns with pixel boundaries and produces stable visual output.
+Guiding principle:
+Simulation may use floating-point precision, but rendering should align to discrete screen pixels.
+
+___

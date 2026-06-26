@@ -15,11 +15,10 @@ class Engine:
         self.entities = [self.player]
 
         # DEBUG: Print map info
-        print(f"Map initialized: Model={self.game_map.model is not None}")
-        if self.game_map.model:
-            print(f"  Meshes: {self.game_map.model.meshCount}")
-            print(f"  Mesh[0] vertices: {self.game_map.model.meshes[0].vertexCount}")
-            print(f"  Mesh[0] triangles: {self.game_map.model.meshes[0].triangleCount}")
+        print(f"Map initialized: Mesh={self.game_map.mesh is not None}")
+        if self.game_map.mesh:
+            print(f"  Mesh vertices: {self.game_map.mesh.vertexCount}")
+            print(f"  Mesh triangles: {self.game_map.mesh.triangleCount}")
 
         # Sandbox parameters
         self.camera_offset = 14.0
@@ -47,9 +46,9 @@ class Engine:
             # DEBUG: Print mesh info once per 60 frames
             frame_count += 1
             if frame_count % 60 == 0:
-                print(f"Frame {frame_count}: Map model exists: {self.game_map.model is not None}")
-                if self.game_map.model:
-                    print(f"  Mesh[0] vertices: {self.game_map.model.meshes[0].vertexCount}")
+                print(f"Frame {frame_count}: Map mesh exists: {self.game_map.mesh is not None}")
+                if self.game_map.mesh:
+                    print(f"  Mesh vertices: {self.game_map.mesh.vertexCount}")
 
         self.close()
 
@@ -257,7 +256,6 @@ class Engine:
         pr.end_drawing()
 
     def close(self):
-        # Cleanup instantiated models cleanly before window termination safely exits system
-        if self.game_map.model is not None:
-            pr.unload_model(self.game_map.model)
+        # Cleanup instantiated mesh cleanly before window termination safely exits system
+        # (meshes are managed by pyray, no explicit unload needed)
         pr.close_window()

@@ -5,7 +5,7 @@ from src.world.map import GameMap
 
 
 class Engine:
-    def __init__(self, width=1024, height=768, title="Wizard Isometric Prototype"):
+    def __init__(self, width=1024, height=768, title="Game Prototype"):
         pr.init_window(width, height, title)
         pr.set_target_fps(60)
 
